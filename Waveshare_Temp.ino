@@ -13,7 +13,7 @@
 #include "CST816S.h"
 #define EXAMPLE_LVGL_TICK_PERIOD_MS    2
 #define uint8_High_Byte 7
-uint8_t setTempToSendOut = 28;
+uint8_t SETTEMP = 20;
 int tIn = 0;
 int tOut = 0;
 
@@ -120,7 +120,8 @@ void my_touchpad_read( lv_indev_drv_t * indev_drv, lv_indev_data_t * data )
 //Write to the Master
 void onRequest() 
 {
-   Wire1.write(setTempToSendOut);
+  int SETTEMP = (int)lv_arc_get_value(ui_ROUND_SLIDER);
+  Wire1.write(SETTEMP);
 }
 
 //Read from the Master
@@ -134,12 +135,8 @@ void onReceive(int len)
   tOut = FixSign(tOut);
 
   Serial.println(tIn);
-
-  
-  lv_label_set_text_fmt(ui_IN_TEMP, "%d", tIn) ;
-
-
   Serial.println(tOut);
+  lv_label_set_text_fmt(ui_IN_TEMP, "%d", tIn) ;
 }
 
 /* 
