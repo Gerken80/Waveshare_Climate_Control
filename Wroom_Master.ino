@@ -1,25 +1,32 @@
 #include "Wire.h"
-#define I2C_DEV_ADDR 0x55
-#define address 0x40
+#define I2C_TEMP_ADDRESS 0x40
 char dtaUart[15];
 char dtaLen = 0;
 uint8_t Data[100] = {0};
 uint8_t buff[100] = {0};
-uint8_t tInToSend = 46;
-uint8_t tOutToSend = -12;
-uint8_t setTempReceived = 0;
+#include "Wire.h"
+#define I2C_SLAVE_ADDRESS 0x55
 
-void setup()
-{
-  Serial.begin(9600);
-  Wire.begin();
-}
+#define QUANTITY_BYTES_TO_RECEIVE 1     // 1 to 16
+#define STOP true                       // true - Release the bus / false - keep the connection alive
+
+uint8_t uint8_to_send = 46;             // Send a number - 0 and 255
 uint8_t buf[4] = {0};
 uint16_t data, data1;
 float temp;
 float hum;
+
+
+void setup()
+{
+  Serial.begin(9600);
+  Serial.setDebugOutput(true);
+  Wire.begin();
+}
+
 void loop()
 {
+
   readReg(0x00, buf, 4);
   data = buf[0] << 8 | buf[1];
   data1 = buf[2] << 8 | buf[3];
@@ -30,37 +37,39 @@ void loop()
   Serial.print("\t");
   Serial.print("hum(%RH):");
   Serial.println(hum);
-  delay(500);
-///////////
-  //Write message to the slave  
-  Wire.beginTransmission(I2C_DEV_ADDR);
+
+/////////////////// WRITE TO SLAVE /////////////////////////////////////
+  Wire.beginTransmission(I2C_SLAVE_ADDRESS);
   Wire.write(temp);
-  Wire.write(tOutToSend);
   uint8_t error = Wire.endTransmission(true);
+//////////////////// END WRITE TO SLAVE ////////////////////////////////
 
-  //Read 8 bytes from the slave
-  setTempReceived = 0;
-  uint8_t bytesReceived = Wire.requestFrom(I2C_DEV_ADDR, 8);
+//////////////////////////////////// RECEIVE FROM SLAVE //////////////////////////////////////////
+  uint8_t bytesReceived = Wire.requestFrom(I2C_SLAVE_ADDRESS, QUANTITY_BYTES_TO_RECEIVE, STOP);
+  uint8_t uint8_from_slave = Wire.read(); // Note below..
+  Serial.println(bytesReceived);
+  Serial.println(uint8_from_slave);
+////////////////////////////////// RECEIVE FROM SLAVE /////////////////////////////////////////
 
-  if ((bool)bytesReceived) {  
-    setTempReceived = Wire.read(); 
-    Serial.println(setTempReceived);
-  }
-///////////////
+  delay(500);                          //Pause for some time
 }
+
+
+
+
 uint8_t readReg(uint8_t reg, const void* pBuf, size_t size)
 {
   if (pBuf == NULL) {
     Serial.println("pBuf ERROR!! : null pointer");
   }
   uint8_t * _pBuf = (uint8_t *)pBuf;
-  Wire.beginTransmission(address);
+  Wire.beginTransmission(I2C_TEMP_ADDRESS);
   Wire.write(&reg, 1);
   if ( Wire.endTransmission() != 0) {
     return 0;
   }
   delay(20);
-  Wire.requestFrom(address, (uint8_t) size);
+  Wire.requestFrom(I2C_TEMP_ADDRESS, (uint8_t) size);
   for (uint16_t i = 0; i < size; i++) {
     _pBuf[i] = Wire.read();
   }
